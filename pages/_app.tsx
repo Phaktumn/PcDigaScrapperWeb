@@ -165,7 +165,7 @@ function MyApp() {
           />
         </div>
         {
-          SelectedRow !== undefined ? <div> <AgChartsReact options={options} /> </div> : <p>Select a row</p>
+          SelectedRow !== undefined ? <div style={{ width:"65%", marginTop: 10 }}> <AgChartsReact options={options} /> </div> : <p>Select a row</p>
         }
       </Box>
     </Grommet>
