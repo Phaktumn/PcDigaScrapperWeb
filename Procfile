@@ -1,1 +1,1 @@
-web: npm run start --prefix scrapper
+web: npm run start --prefix .\scrapper-next\
