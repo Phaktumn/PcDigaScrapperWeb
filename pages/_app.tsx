@@ -14,7 +14,7 @@ import 'ag-grid-community/dist/styles/ag-theme-material.css'; // Optional theme 
 import { AgChartOptions, Autowired, ColDef, ColGroupDef, ICellRendererParams, RowSelectedEvent } from 'ag-grid-community';
 
 import { AgChartsReact } from 'ag-charts-react';
-import { Product } from './Product';
+import { Product } from '../models/Product';
 
 import { hpe } from 'grommet-theme-hpe';
 import { Search } from 'grommet-icons'
