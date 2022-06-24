@@ -1,10 +1,11 @@
+import '../styles/globals.css'
+import '../styles/App.css'
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import './App.css';
 import axios from 'axios';
 
 import { AgGridReact } from 'ag-grid-react'; // the AG Grid React Component
-import 'ag-grid-enterprise';
+
 import 'ag-grid-community/dist/styles/ag-grid.css'; // Core grid CSS, always needed
 import 'ag-grid-community/dist/styles/ag-theme-alpine.css'; // Optional theme CSS
 import { AgChartOptions, ColDef, ColGroupDef, ICellRendererParams, RowSelectedEvent } from 'ag-grid-community';
@@ -32,7 +33,7 @@ class ProductPrice {
   createdAt!: String;
 }
 
-function App() {
+function MyApp() {
   const [Products, SetProducts] = useState<any[]>([]);
   const [SelectedRow, SetSelectedRow] = useState<Product>();
   const a: any[] = [];
@@ -146,6 +147,4 @@ function App() {
   );
 }
 
-export default App;
-
-
+export default MyApp;
