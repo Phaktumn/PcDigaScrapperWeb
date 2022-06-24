@@ -57,7 +57,8 @@ function MyApp() {
     autoSize: true,
     data: SelectedRow?.prices,
     legend: {
-      enabled: true
+      enabled: true,
+      position: "top"
     },
     series: [
       {
