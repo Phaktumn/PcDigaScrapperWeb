@@ -8,37 +8,36 @@ import { AgGridReact } from 'ag-grid-react'; // the AG Grid React Component
 
 import 'ag-grid-community/dist/styles/ag-grid.css'; // Core grid CSS, always needed
 import 'ag-grid-community/dist/styles/ag-theme-alpine.css'; // Optional theme CSS
-import { AgChartOptions, ColDef, ColGroupDef, ICellRendererParams, RowSelectedEvent } from 'ag-grid-community';
+import 'ag-grid-community/dist/styles/ag-theme-balham-dark.css'; // Optional theme CSS
+import 'ag-grid-community/dist/styles/ag-theme-alpine-dark.css'; // Optional theme CSS
+import 'ag-grid-community/dist/styles/ag-theme-material.css'; // Optional theme CSS
+import { AgChartOptions, Autowired, ColDef, ColGroupDef, ICellRendererParams, RowSelectedEvent } from 'ag-grid-community';
 
 import { AgChartsReact } from 'ag-charts-react';
+import { Product } from './Product';
 
-class Product {
-  ean!: String;
-  name!: String;
-  url!: String;
-  image!: String;
-  prices!: [ProductPrice];
-  updatedAt!: String;
-  createdAt!: String;
-}
-
-class ProductPrice {
-  currentPrice!: number;
-  originalPrice!: number;
-  priceDifference!: number;
-  isOnDiscount!: Boolean;
-  discountPercentage!: number;
-  date!: string;
-  updatedAt!: String;
-  createdAt!: String;
-}
+import { hpe } from 'grommet-theme-hpe';
+import { Search } from 'grommet-icons'
+import { Box, Button, TextInput, Grommet } from 'grommet';
+import React from 'react';
 
 function MyApp() {
   const [Products, SetProducts] = useState<any[]>([]);
   const [SelectedRow, SetSelectedRow] = useState<Product>();
+  const [urlInput, setUrlInput] = React.useState('');
   const a: any[] = [];
 
   const gridRef = useRef<AgGridReact>(null);
+
+  const theme = {
+    global: {
+      font: {
+        family: 'Roboto',
+        size: '18px',
+        height: '20px',
+      },
+    },
+  };
 
   async function process(): Promise<void> {
     var result = await axios.get<Product[]>("https://pcdigascrapper.herokuapp.com/product/filter");
@@ -56,6 +55,7 @@ function MyApp() {
   const options: AgChartOptions = {
     autoSize: true,
     data: SelectedRow?.prices,
+    theme: 'ag-material-dark',
     legend: {
       enabled: true,
       position: "top"
@@ -67,6 +67,7 @@ function MyApp() {
         yKey: 'currentPrice',
         label: {
           enabled: true,
+          color: 'white',
           fontWeight: 'bold'
         }
       },
@@ -76,6 +77,7 @@ function MyApp() {
         yKey: 'originalPrice',
         label: {
           enabled: true,
+          color: 'white',
           fontWeight: 'bold'
         }
       }
@@ -92,11 +94,18 @@ function MyApp() {
       resizable: true,
       width: 300,
       cellRenderer: (prop: ICellRendererParams) =>
-        <div>
-          <button onClick={() => { openInNewTab(prop.value); }} style={{ marginLeft: "5px", marginRight: "5px", width: "80px" }}>
-            <img src='https://static.pcdiga.com/static/version1656000411/frontend/Skrey/PCDigaTheme/pt_PT/images/logo.svg' width={'100%'}>
-            </img>
-          </button>
+
+        <Box
+          direction="row-responsive"
+          justify="center"
+          align="center"
+          pad="small"
+          margin={"medium"}
+          gap="medium"
+        >
+          <Button onClick={() => { openInNewTab(prop.value); }} style={{ marginLeft: "5px", marginRight: "5px", padding: 2, width: "80px" }} >
+            <img src='https://static.pcdiga.com/static/version1656000411/frontend/Skrey/PCDigaTheme/pt_PT/images/logo.svg' width={'100%'} />
+          </Button>
           <button
             style={{ marginLeft: "5px", marginRight: "5px", width: "80px" }}
             onClick={async () => {
@@ -119,7 +128,7 @@ function MyApp() {
               </button>
               : <div></div>
           }
-        </div>
+        </Box>
     }
   ]);
 
@@ -128,23 +137,38 @@ function MyApp() {
     SetSelectedRow(selectedRows[0]);
   }, []);
 
+  const onChange = (event: any) => setUrlInput(event.target.value);
+  const onInpuitKeyDown = async (event: any) => {
+    if (event.key === 'Enter') {
+      gridRef?.current?.api.showLoadingOverlay();
+      await axios.get<Product>("https://pcdigascrapper.herokuapp.com/scrape?url=" + urlInput);
+      await process();
+      gridRef?.current?.api.hideOverlay();
+    }
+  };
+
   return (
-    <div className="App" style={{ marginLeft: '10%', marginRight: '10%' }}>
-      <div className="ag-theme-alpine" style={{ width: '100%', height: 600 }}>
-        <AgGridReact
-          ref={gridRef}
-          rowHeight={100}
-          rowData={Products} // Row Data for Rows
-          columnDefs={columnDefs} // Column Defs for Columns
-          animateRows={true} // Optional - set to 'true' to have rows animate when sorted
-          rowSelection='multiple' // Options - allows click selection of rows
-          onSelectionChanged={onSelectionChanged}
-        />
-      </div>
-      {
-        SelectedRow !== undefined ? <AgChartsReact options={options} /> : <p>Select a row</p>
-      }
-    </div>
+    <Grommet theme={hpe} themeMode={'dark'} style={{ minHeight: "100vh" }}>
+      <Box width="100%" align='center' justify='around'>
+        <Box width="50%">
+          <TextInput style={{ marginTop: 10, marginBottom: 10 }} size="medium" icon={<Search />} placeholder="https://www.pcdiga.com/componentes/processadores/..." value={urlInput} onChange={onChange} onKeyDown={onInpuitKeyDown} />
+        </Box>
+        <div className="ag-theme-balham-dark" style={{ width: '80%', height: 600, marginLeft: "10%", marginRight: "10%" }}>
+          <AgGridReact
+            ref={gridRef}
+            rowHeight={100}
+            rowData={Products} // Row Data for Rows
+            columnDefs={columnDefs} // Column Defs for Columns
+            animateRows={true} // Optional - set to 'true' to have rows animate when sorted
+            rowSelection='multiple' // Options - allows click selection of rows
+            onSelectionChanged={onSelectionChanged}
+          />
+        </div>
+        {
+          SelectedRow !== undefined ? <div> <AgChartsReact options={options} /> </div> : <p>Select a row</p>
+        }
+      </Box>
+    </Grommet>
   );
 }
 
