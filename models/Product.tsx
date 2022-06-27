@@ -1,11 +1,12 @@
-import { ProductPrice } from "./ProductPrice";
+import { Seller } from "./Seller";
 
 export class Product {
-  ean!: String;
   name!: String;
-  url!: String;
+  sku!: String;
   image!: String;
-  prices!: [ProductPrice];
+  sellers!: Seller[];
   updatedAt!: String;
   createdAt!: String;
 }
+
+

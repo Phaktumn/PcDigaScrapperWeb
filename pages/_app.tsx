@@ -15,10 +15,13 @@ import { AgChartOptions, Autowired, ColDef, ColGroupDef, ICellRendererParams, Ro
 
 import { AgChartsReact } from 'ag-charts-react';
 import { Product } from '../models/Product';
+import { Seller } from '../models/Seller';
+import Image from 'next/image'
+
 
 import { hpe } from 'grommet-theme-hpe';
 import { Search } from 'grommet-icons'
-import { Box, Button, TextInput, Grommet } from 'grommet';
+import { Box, Button, TextInput, Grommet, Tag } from 'grommet';
 import React from 'react';
 
 function MyApp() {
@@ -26,6 +29,8 @@ function MyApp() {
   const [SelectedRow, SetSelectedRow] = useState<Product>();
   const [urlInput, setUrlInput] = React.useState('');
   const a: any[] = [];
+
+  const baseUrl = process.env.BASE_URL ?? 'http://localhost:5000';
 
   const gridRef = useRef<AgGridReact>(null);
 
@@ -39,32 +44,34 @@ function MyApp() {
     },
   };
 
-  async function process(): Promise<void> {
-    var result = await axios.get<Product[]>("https://pcdigascrapper.herokuapp.com/product/filter");
+  async function getProducts(): Promise<void> {
+    var result = await axios.get<Product[]>(`${baseUrl}/product/filter`);
     SetProducts(result.data);
   }
 
   useEffect(() => {
-    process().catch(console.error);
+    getProducts().catch(console.error);
   }, a);
 
   const openInNewTab = (url: string) => {
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
-  const options: AgChartOptions = {
+  let options: AgChartOptions = {
     autoSize: true,
-    data: SelectedRow?.prices,
+    //data: SelectedRow?.sellers,
     theme: 'ag-material-dark',
     legend: {
       enabled: true,
       position: "top"
     },
-    series: [
+    series: [ 
       {
-        type: 'line',
+        data: SelectedRow?.sellers[0].productPrices,
         xKey: 'date',
         yKey: 'currentPrice',
+        xName: SelectedRow?.sellers[0].name,
+        yName: SelectedRow?.sellers[0].name,
         label: {
           enabled: true,
           color: 'white',
@@ -72,46 +79,73 @@ function MyApp() {
         }
       },
       {
-        type: 'line',
+        data: SelectedRow?.sellers[1].productPrices,
         xKey: 'date',
-        yKey: 'originalPrice',
+        yKey: 'currentPrice',
+        xName: SelectedRow?.sellers[1].name,
+        yName: SelectedRow?.sellers[1].name,
         label: {
           enabled: true,
           color: 'white',
-          fontWeight: 'bold'
+          fontWeight: 'bold',
+
         }
       }
     ],
   }
 
+  /*
+  {
+    data:  SelectedRow?.sellers[0].productPrices,
+    type: 'line',
+    xKey: 'date',
+    yKey: 'currentPrice',
+    label: {
+      enabled: true,
+      color: 'white',
+      fontWeight: 'bold'
+    }
+  }*/
+
   // Each Column Definition results in one Column.
   const [columnDefs, setColumnDefs] = useState<(ColDef | ColGroupDef)[]>([
-    { field: 'image', autoHeight: true, resizable: true, cellRenderer: (prop: ICellRendererParams) => <img src={prop.value} height={90} width={150} /> },
-    { field: 'ean', filter: true, resizable: true },
+    { 
+      field: 'image',
+      autoHeight: true, 
+      resizable: true, 
+      cellRenderer: (prop: ICellRendererParams) => 
+        <div style={{ }}>
+          <Image src={prop.value ? prop.value : 'https://socialistmodernism.com/wp-content/uploads/2017/07/placeholder-image.png'} layout='fill' objectFit='contain' alt="prod_img" /> 
+        </div>
+    },
+    { field: 'sku', filter: true, resizable: true },
     { field: 'name', minWidth: 650, filter: true, resizable: true },
     {
       field: 'url',
       resizable: true,
       width: 300,
       cellRenderer: (prop: ICellRendererParams) =>
-
         <Box
-          direction="row-responsive"
+          direction="column"
           justify="center"
           align="center"
-          pad="small"
-          margin={"medium"}
-          gap="medium"
+          pad="none"
+          margin={"none"}
+          gap="xsmall"
         >
-          <Button onClick={() => { openInNewTab(prop.value); }} style={{ marginLeft: "5px", marginRight: "5px", padding: 2, width: "80px" }} >
-            <img src='https://static.pcdiga.com/static/version1656000411/frontend/Skrey/PCDigaTheme/pt_PT/images/logo.svg' width={'100%'} />
-          </Button>
-          <button
+          <Box direction="row-responsive" fill="vertical" flex={true} pad="xsmall" gap='xsmall' wrap={true} responsive={true}>
+          {
+            (prop.data.sellers as Seller[]).map((seller: Seller, index: number) => {
+              return <Tag key={index} size='xsmall' value={seller.name} onClick={ () => { openInNewTab(seller.url); } } />
+            })
+          }
+          </Box>
+            <button
             style={{ marginLeft: "5px", marginRight: "5px", width: "80px" }}
             onClick={async () => {
               gridRef?.current?.api.showLoadingOverlay();
-              let res = await axios.get<Product>("https://pcdigascrapper.herokuapp.com/scrape?url=" + prop.value);
-              await process();
+              let res = await axios.get<Product>(`${baseUrl}/scrape?sku=${prop.data.sku}`);
+              await getProducts();
               gridRef?.current?.api.hideOverlay();
             }}>
             Scrape
@@ -120,14 +154,15 @@ function MyApp() {
             !prop.data.image ?
               <button onClick={async () => {
                 gridRef?.current?.api.showLoadingOverlay();
-                await axios.get<Product>("https://pcdigascrapper.herokuapp.com/product/update?prop=image&url=" + prop.value);
-                await process();
+                await axios.get<Product>(`${baseUrl}/product/update?prop=image&url=${prop.value}`);
+                await getProducts();
                 gridRef?.current?.api.hideOverlay();
               }}>
                 Update Image
               </button>
               : <div></div>
-          }
+          } 
+          
         </Box>
     }
   ]);
@@ -135,14 +170,27 @@ function MyApp() {
   const onSelectionChanged = useCallback(() => {
     const selectedRows = gridRef.current!.api.getSelectedRows();
     SetSelectedRow(selectedRows[0]);
+    SelectedRow?.sellers.forEach(element => {
+      var prices = element.productPrices;
+      options.series?.push({
+        data:  prices,
+        xKey: 'date',
+        yKey: 'currentPrice',
+        label: {
+          enabled: true,
+          color: 'white',
+          fontWeight: 'bold'
+        }
+      });
+    });
   }, []);
 
   const onChange = (event: any) => setUrlInput(event.target.value);
   const onInpuitKeyDown = async (event: any) => {
     if (event.key === 'Enter') {
       gridRef?.current?.api.showLoadingOverlay();
-      await axios.get<Product>("https://pcdigascrapper.herokuapp.com/scrape?url=" + urlInput);
-      await process();
+      await axios.get<Product>(`${baseUrl}/product/create?url=${urlInput}`);
+      await getProducts();
       gridRef?.current?.api.hideOverlay();
     }
   };
@@ -165,7 +213,7 @@ function MyApp() {
           />
         </div>
         {
-          SelectedRow !== undefined ? <div style={{ width:"65%", marginTop: 10 }}> <AgChartsReact options={options} /> </div> : <p>Select a row</p>
+          SelectedRow !== undefined ? <div style={{ width: "65%", marginTop: 10 }}> <AgChartsReact options={options} /> </div> : <p>Select a row</p>
         }
       </Box>
     </Grommet>
