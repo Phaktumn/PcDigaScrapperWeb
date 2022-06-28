@@ -194,6 +194,17 @@ function MyApp() {
           fontWeight: 'bold'
         }
         
+      },
+      {
+        data:  prices,
+        xKey: 'date',
+        yKey: 'originalPrice',
+        xName: 'Preco original ' + element.name,
+        yName: 'Preco original ' + element.name,
+        label: {
+          enabled: true,
+          color: 'white'
+        }
       });
     });
     setAGGOptions(options);
