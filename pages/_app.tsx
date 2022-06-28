@@ -2,7 +2,7 @@ import '../styles/globals.css'
 import '../styles/App.css'
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import axios from 'axios';
+import axios, { AxiosResponse } from 'axios';
 
 import { AgGridReact } from 'ag-grid-react'; // the AG Grid React Component
 
@@ -21,14 +21,42 @@ import Image from 'next/image'
 
 import { hpe } from 'grommet-theme-hpe';
 import { Search } from 'grommet-icons'
-import { Box, Button, TextInput, Grommet, Tag } from 'grommet';
+import { Box, Button, TextInput, Grommet, Tag, Notification } from 'grommet';
 import React from 'react';
+
+import { cloneDeep } from 'lodash';
 
 function MyApp() {
   const [Products, SetProducts] = useState<any[]>([]);
   const [SelectedRow, SetSelectedRow] = useState<Product>();
   const [urlInput, setUrlInput] = React.useState('');
+  const [visible, setVisible] = useState(false);
+  const [AGGOptions, setAGGOptions] = useState<AgChartOptions>({
+    autoSize: true,
+    theme: 'ag-material-dark',
+    legend: {
+      enabled: true,
+      position: "top"
+    },
+    /*series: [ 
+      {
+        data: SelectedRow?.sellers[0].productPrices,
+        xKey: 'date',
+        yKey: 'currentPrice',
+        xName: SelectedRow?.sellers[0].name,
+        yName: SelectedRow?.sellers[0].name,
+        label: {
+          enabled: true,
+          color: 'white',
+          fontWeight: 'bold'
+        }
+      }
+    ]*/
+  });
+  const placeholderImage = 'https://socialistmodernism.com/wp-content/uploads/2017/07/placeholder-image.png';
   const a: any[] = [];
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastTitle, setToastTitle]= useState('');
 
   const baseUrl = process.env.BASE_URL ?? 'http://localhost:5000';
 
@@ -44,55 +72,23 @@ function MyApp() {
     },
   };
 
+  const onOpen = () => setVisible(true);
+  const onClose = () => setVisible(false);
+
   async function getProducts(): Promise<void> {
     var result = await axios.get<Product[]>(`${baseUrl}/product/filter`);
     SetProducts(result.data);
   }
 
   useEffect(() => {
-    getProducts().catch(console.error);
-  }, a);
+    axios.get<Product[]>(`${baseUrl}/product/filter`)
+      .then((v: AxiosResponse<Product[]>) => { SetProducts(v.data); })
+      .catch(console.error);
+  }, [baseUrl]);
 
   const openInNewTab = (url: string) => {
     window.open(url, '_blank', 'noopener,noreferrer');
   };
-
-  let options: AgChartOptions = {
-    autoSize: true,
-    //data: SelectedRow?.sellers,
-    theme: 'ag-material-dark',
-    legend: {
-      enabled: true,
-      position: "top"
-    },
-    series: [ 
-      {
-        data: SelectedRow?.sellers[0].productPrices,
-        xKey: 'date',
-        yKey: 'currentPrice',
-        xName: SelectedRow?.sellers[0].name,
-        yName: SelectedRow?.sellers[0].name,
-        label: {
-          enabled: true,
-          color: 'white',
-          fontWeight: 'bold'
-        }
-      },
-      {
-        data: SelectedRow?.sellers[1].productPrices,
-        xKey: 'date',
-        yKey: 'currentPrice',
-        xName: SelectedRow?.sellers[1].name,
-        yName: SelectedRow?.sellers[1].name,
-        label: {
-          enabled: true,
-          color: 'white',
-          fontWeight: 'bold',
-
-        }
-      }
-    ],
-  }
 
   /*
   {
@@ -114,9 +110,14 @@ function MyApp() {
       autoHeight: true, 
       resizable: true, 
       cellRenderer: (prop: ICellRendererParams) => 
-        <div style={{ }}>
-          <Image src={prop.value ? prop.value : 'https://socialistmodernism.com/wp-content/uploads/2017/07/placeholder-image.png'} layout='fill' objectFit='contain' alt="prod_img" /> 
-        </div>
+          <div style={{ }}>
+          {
+            (prop.value as String).includes('globaldata')
+              ? <Image loader={(value) => `${value.src}?w=${value.width}&q=${value.quality}`} placeholder='blur' blurDataURL={placeholderImage} src={prop.value} layout='fill' objectFit='contain' alt="prod_img" />
+              : <Image src={prop.value} placeholder='blur' blurDataURL={placeholderImage} layout='fill' objectFit='contain' alt="prod_img" />
+          }
+          </div>
+        
     },
     { field: 'sku', filter: true, resizable: true },
     { field: 'name', minWidth: 650, filter: true, resizable: true },
@@ -144,8 +145,14 @@ function MyApp() {
             style={{ marginLeft: "5px", marginRight: "5px", width: "80px" }}
             onClick={async () => {
               gridRef?.current?.api.showLoadingOverlay();
-              let res = await axios.get<Product>(`${baseUrl}/scrape?sku=${prop.data.sku}`);
-              await getProducts();
+              try {
+                await axios.get<Product | any>(`${baseUrl}/scrape?sku=${prop.data.sku}`); 
+                await getProducts();
+              } catch (error: any) {
+                setToastMessage('Error product/update');
+                setToastMessage(error.response.data.message);
+                setVisible(true);
+              }
               gridRef?.current?.api.hideOverlay();
             }}>
             Scrape
@@ -168,29 +175,45 @@ function MyApp() {
   ]);
 
   const onSelectionChanged = useCallback(() => {
-    const selectedRows = gridRef.current!.api.getSelectedRows();
+    const selectedRows: Product[] = gridRef.current!.api.getSelectedRows();
     SetSelectedRow(selectedRows[0]);
-    SelectedRow?.sellers.forEach(element => {
+    const options = cloneDeep(AGGOptions) as AgChartOptions;
+    options.series = [];
+    selectedRows[0].sellers.forEach(element => {
       var prices = element.productPrices;
+      console.log(prices);
       options.series?.push({
         data:  prices,
         xKey: 'date',
         yKey: 'currentPrice',
+        xName: element.name,
+        yName: element.name,
         label: {
           enabled: true,
           color: 'white',
           fontWeight: 'bold'
         }
+        
       });
     });
-  }, []);
+    setAGGOptions(options);
+    console.log(options);
+    console.log(AGGOptions);
+  }, [AGGOptions]);
 
   const onChange = (event: any) => setUrlInput(event.target.value);
   const onInpuitKeyDown = async (event: any) => {
     if (event.key === 'Enter') {
       gridRef?.current?.api.showLoadingOverlay();
-      await axios.get<Product>(`${baseUrl}/product/create?url=${urlInput}`);
-      await getProducts();
+      const res = await axios.get<Product | any>(`${baseUrl}/product/create?url=${urlInput}`);
+      if (res.status >= 400) {
+        setToastTitle('Error product/create');
+        setToastMessage(res.data.message);
+        setVisible(true);
+      }
+      else {
+        await getProducts();
+      }
       gridRef?.current?.api.hideOverlay();
     }
   };
@@ -213,9 +236,19 @@ function MyApp() {
           />
         </div>
         {
-          SelectedRow !== undefined ? <div style={{ width: "65%", marginTop: 10 }}> <AgChartsReact options={options} /> </div> : <p>Select a row</p>
+          SelectedRow !== undefined ? <div style={{ width: "65%", marginTop: 10 }}> <AgChartsReact options={AGGOptions} /> </div> : <p>Select a row</p>
         }
       </Box>
+      {
+        visible && (
+          <Notification
+            toast
+            title={toastTitle}
+            message={toastMessage}
+            onClose={onClose}
+             
+          />
+      )}
     </Grommet>
   );
 }

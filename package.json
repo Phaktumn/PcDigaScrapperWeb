@@ -27,12 +27,14 @@
     "grommet": "^2.24.0",
     "grommet-icons": "^4.7.0",
     "grommet-theme-hpe": "^3.1.0",
+    "lodash": "^4.17.21",
     "next": "12.1.6",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "styled-components": "^5.3.5"
   },
   "devDependencies": {
+    "@types/lodash": "^4.14.182",
     "@types/node": "18.0.0",
     "@types/react": "18.0.14",
     "@types/react-dom": "18.0.5",
