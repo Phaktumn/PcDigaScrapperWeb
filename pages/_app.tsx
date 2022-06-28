@@ -26,6 +26,7 @@ import React from 'react';
 
 import { cloneDeep } from 'lodash';
 
+const API_URL = 'https://pcdigascrapper.herokuapp.com';
 function MyApp() {
   const [Products, SetProducts] = useState<any[]>([]);
   const [SelectedRow, SetSelectedRow] = useState<Product>();
@@ -59,8 +60,7 @@ function MyApp() {
   const [toastTitle, setToastTitle]= useState('');
 
   function getApiUrl() {
-    console.log(process.env.API_URL);
-    return process.env.API_URL ?? 'http://localhost:5000';
+    return API_URL;
   }
 
   const gridRef = useRef<AgGridReact>(null);

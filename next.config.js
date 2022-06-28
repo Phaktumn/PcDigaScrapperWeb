@@ -2,7 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   env: {
-    API_URL: 'https://pcdigascrapper.herokuapp.com',
+    PUBLIC_ENV_API_URL: 'https://pcdigascrapper.herokuapp.com',
   },
   images: {
     domains: [
