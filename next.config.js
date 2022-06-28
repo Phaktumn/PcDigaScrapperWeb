@@ -1,8 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  images: {
-    loader: 'imgix' 
+  env: {
+    API_URL: 'https://pcdigascrapper.herokuapp.com',
   },
   images: {
     domains: [

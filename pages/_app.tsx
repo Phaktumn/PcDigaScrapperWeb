@@ -59,8 +59,8 @@ function MyApp() {
   const [toastTitle, setToastTitle]= useState('');
 
   function getApiUrl() {
-    console.log(process.env.BASE_URL);
-    return process.env.BASE_URL ?? 'http://localhost:5000';
+    console.log(process.env.API_URL);
+    return process.env.API_URL ?? 'http://localhost:5000';
   }
 
   const gridRef = useRef<AgGridReact>(null);
