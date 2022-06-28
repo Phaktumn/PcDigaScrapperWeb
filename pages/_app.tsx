@@ -58,7 +58,10 @@ function MyApp() {
   const [toastMessage, setToastMessage] = useState('');
   const [toastTitle, setToastTitle]= useState('');
 
-  const baseUrl = process.env.BASE_URL ?? 'http://localhost:5000';
+  function getApiUrl() {
+    console.log(process.env.BASE_URL);
+    return process.env.BASE_URL ?? 'http://localhost:5000';
+  }
 
   const gridRef = useRef<AgGridReact>(null);
 
@@ -76,15 +79,15 @@ function MyApp() {
   const onClose = () => setVisible(false);
 
   async function getProducts(): Promise<void> {
-    var result = await axios.get<Product[]>(`${baseUrl}/product/filter`);
+    var result = await axios.get<Product[]>(`${getApiUrl()}/product/filter`);
     SetProducts(result.data);
   }
 
   useEffect(() => {
-    axios.get<Product[]>(`${baseUrl}/product/filter`)
+    axios.get<Product[]>(`${getApiUrl()}/product/filter`)
       .then((v: AxiosResponse<Product[]>) => { SetProducts(v.data); })
       .catch(console.error);
-  }, [baseUrl]);
+  }, []);
 
   const openInNewTab = (url: string) => {
     window.open(url, '_blank', 'noopener,noreferrer');
@@ -146,7 +149,7 @@ function MyApp() {
             onClick={async () => {
               gridRef?.current?.api.showLoadingOverlay();
               try {
-                await axios.get<Product | any>(`${baseUrl}/scrape?sku=${prop.data.sku}`); 
+                await axios.get<Product | any>(`${getApiUrl()}/scrape?sku=${prop.data.sku}`); 
                 await getProducts();
               } catch (error: any) {
                 setToastMessage('Error product/update');
@@ -161,7 +164,7 @@ function MyApp() {
             !prop.data.image ?
               <button onClick={async () => {
                 gridRef?.current?.api.showLoadingOverlay();
-                await axios.get<Product>(`${baseUrl}/product/update?prop=image&url=${prop.value}`);
+                await axios.get<Product>(`${getApiUrl()}/product/update?prop=image&url=${prop.value}`);
                 await getProducts();
                 gridRef?.current?.api.hideOverlay();
               }}>
@@ -216,7 +219,7 @@ function MyApp() {
   const onInpuitKeyDown = async (event: any) => {
     if (event.key === 'Enter') {
       gridRef?.current?.api.showLoadingOverlay();
-      const res = await axios.get<Product | any>(`${baseUrl}/product/create?url=${urlInput}`);
+      const res = await axios.get<Product | any>(`${getApiUrl()}/product/create?url=${urlInput}`);
       if (res.status >= 400) {
         setToastTitle('Error product/create');
         setToastMessage(res.data.message);
