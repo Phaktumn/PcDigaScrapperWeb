@@ -11,7 +11,7 @@ import 'ag-grid-community/dist/styles/ag-theme-alpine.css'; // Optional theme CS
 import 'ag-grid-community/dist/styles/ag-theme-balham-dark.css'; // Optional theme CSS
 import 'ag-grid-community/dist/styles/ag-theme-alpine-dark.css'; // Optional theme CSS
 import 'ag-grid-community/dist/styles/ag-theme-material.css'; // Optional theme CSS
-import { AgChartOptions, Autowired, ColDef, ColGroupDef, ICellRendererParams, RowSelectedEvent } from 'ag-grid-community';
+import { AgChartOptions, Autowired, ColDef, ColGroupDef, Color, ICellRendererParams, RowSelectedEvent } from 'ag-grid-community';
 
 import { AgChartsReact } from 'ag-charts-react';
 import { Product } from '../models/Product';
@@ -20,13 +20,13 @@ import Image from 'next/image'
 
 
 import { hpe } from 'grommet-theme-hpe';
-import { Search } from 'grommet-icons'
+import { Search, Trash } from 'grommet-icons'
 import { Box, Button, TextInput, Grommet, Tag, Notification } from 'grommet';
 import React from 'react';
 
 import { cloneDeep } from 'lodash';
 
-const API_URL = 'https://pcdigascrapper.herokuapp.com';
+const API_URL = 'http://localhost:5000';
 function MyApp() {
   const [Products, SetProducts] = useState<any[]>([]);
   const [SelectedRow, SetSelectedRow] = useState<Product>();
@@ -57,23 +57,16 @@ function MyApp() {
   const placeholderImage = 'https://socialistmodernism.com/wp-content/uploads/2017/07/placeholder-image.png';
   const a: any[] = [];
   const [toastMessage, setToastMessage] = useState('');
-  const [toastTitle, setToastTitle]= useState('');
+  const [toastTitle, setToastTitle] = useState('');
+  const [loading, setLoading] = useState(false)
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [scraping, setScraping] = useState(false)
 
   function getApiUrl() {
     return API_URL;
   }
 
   const gridRef = useRef<AgGridReact>(null);
-
-  const theme = {
-    global: {
-      font: {
-        family: 'Roboto',
-        size: '18px',
-        height: '20px',
-      },
-    },
-  };
 
   const onOpen = () => setVisible(true);
   const onClose = () => setVisible(false);
@@ -108,29 +101,30 @@ function MyApp() {
 
   // Each Column Definition results in one Column.
   const [columnDefs, setColumnDefs] = useState<(ColDef | ColGroupDef)[]>([
-    { 
+    {
       field: 'image',
-      autoHeight: true, 
-      resizable: true, 
-      cellRenderer: (prop: ICellRendererParams) => 
-          <div style={{ }}>
+      autoHeight: true,
+      resizable: true,
+      cellRenderer: (prop: ICellRendererParams) =>
+        <div style={{}}>
           {
             (prop.value as String).includes('globaldata')
-              ? <Image loader={(value) => `${value.src}?w=${value.width}&q=${value.quality}`} placeholder='blur' blurDataURL={placeholderImage} src={prop.value} layout='fill' objectFit='contain' alt="prod_img" />
+              ? <Image src={prop.value} loader={(value) => `${value.src}?w=${value.width}&q=${value.quality}`} placeholder='blur' blurDataURL={placeholderImage} layout='fill' objectFit='contain' alt="prod_img" />
               : <Image src={prop.value} placeholder='blur' blurDataURL={placeholderImage} layout='fill' objectFit='contain' alt="prod_img" />
           }
-          </div>
-        
+        </div>
+
     },
     { field: 'sku', filter: true, resizable: true },
     { field: 'name', minWidth: 650, filter: true, resizable: true },
     {
       field: 'url',
+      pinned: "right",
       resizable: true,
       width: 300,
       cellRenderer: (prop: ICellRendererParams) =>
         <Box
-          direction="column"
+          direction="row"
           justify="center"
           align="center"
           pad="none"
@@ -138,41 +132,61 @@ function MyApp() {
           gap="xsmall"
         >
           <Box direction="row-responsive" fill="vertical" flex={true} pad="xsmall" gap='xsmall' wrap={true} responsive={true}>
-          {
-            (prop.data.sellers as Seller[]).map((seller: Seller, index: number) => {
-              return <Tag key={index} size='xsmall' value={seller.name} onClick={ () => { openInNewTab(seller.url); } } />
-            })
-          }
+            {
+              (prop.data.sellers as Seller[]).map((seller: Seller, index: number) => {
+                return <Tag key={index} size='xsmall' value={seller.name} onClick={() => { openInNewTab(seller.url); }} />
+              })
+            }
           </Box>
-            <button
-            style={{ marginLeft: "5px", marginRight: "5px", width: "80px" }}
+          <Button primary disabled={deleteBusy || scraping}
             onClick={async () => {
+              setScraping(true);
               gridRef?.current?.api.showLoadingOverlay();
               try {
-                await axios.get<Product | any>(`${getApiUrl()}/scrape?sku=${prop.data.sku}`); 
+                await axios.get<Product | any>(`${getApiUrl()}/scrape?sku=${prop.data.sku}`);
                 await getProducts();
               } catch (error: any) {
-                setToastMessage('Error product/update');
                 setToastMessage(error.response.data.message);
                 setVisible(true);
               }
               gridRef?.current?.api.hideOverlay();
+              setScraping(false);
             }}>
-            Scrape
-          </button>
+            <span style={{ padding: "1rem" }}>Scrape</span>
+          </Button>
+          <Button primary onClick={async () => {
+            setDeleteBusy(true);
+            gridRef?.current?.api.showLoadingOverlay();
+
+            try {
+              await axios.delete<boolean | any>(`${getApiUrl()}/product?id=${prop.data._id}`);
+              await getProducts();
+            }
+            catch( error: any) {
+              setToastMessage(error.response.data.message);
+              setVisible(true);
+            }
+
+            gridRef?.current?.api.hideOverlay();
+            setScraping(false);
+          }}
+            color={"#ed5249"}
+            disabled={deleteBusy || scraping} icon={<Trash color='white' size='small' />} hoverIndicator >
+          </Button>
           {
             !prop.data.image ?
-              <button onClick={async () => {
-                gridRef?.current?.api.showLoadingOverlay();
-                await axios.get<Product>(`${getApiUrl()}/product/update?prop=image&url=${prop.value}`);
-                await getProducts();
-                gridRef?.current?.api.hideOverlay();
-              }}>
+              <Button primary
+                onClick={async () => {
+                  gridRef?.current?.api.showLoadingOverlay();
+                  await axios.get<Product>(`${getApiUrl()}/product/update?prop=image&url=${prop.value}`);
+                  await getProducts();
+                  gridRef?.current?.api.hideOverlay();
+                }}>
                 Update Image
-              </button>
+              </Button>
               : <div></div>
-          } 
-          
+          }
+
         </Box>
     }
   ]);
@@ -186,7 +200,7 @@ function MyApp() {
       var prices = element.productPrices;
       console.log(prices);
       options.series?.push({
-        data:  prices,
+        data: prices,
         xKey: 'date',
         yKey: 'currentPrice',
         xName: element.name,
@@ -196,19 +210,19 @@ function MyApp() {
           color: 'white',
           fontWeight: 'bold'
         }
-        
+
       },
-      {
-        data:  prices,
-        xKey: 'date',
-        yKey: 'originalPrice',
-        xName: 'Preco original ' + element.name,
-        yName: 'Preco original ' + element.name,
-        label: {
-          enabled: true,
-          color: 'white'
-        }
-      });
+        {
+          data: prices,
+          xKey: 'date',
+          yKey: 'originalPrice',
+          xName: 'Preco original ' + element.name,
+          yName: 'Preco original ' + element.name,
+          label: {
+            enabled: true,
+            color: 'white'
+          }
+        });
     });
     setAGGOptions(options);
     console.log(options);
@@ -216,8 +230,9 @@ function MyApp() {
   }, [AGGOptions]);
 
   const onChange = (event: any) => setUrlInput(event.target.value);
-  const onInpuitKeyDown = async (event: any) => {
+  const onInputKeyDown = async (event: any) => {
     if (event.key === 'Enter') {
+      setLoading(true);
       gridRef?.current?.api.showLoadingOverlay();
       const res = await axios.get<Product | any>(`${getApiUrl()}/product/create?url=${urlInput}`);
       if (res.status >= 400) {
@@ -229,14 +244,15 @@ function MyApp() {
         await getProducts();
       }
       gridRef?.current?.api.hideOverlay();
+      setLoading(false);
     }
   };
 
   return (
-    <Grommet theme={hpe} themeMode={'dark'} style={{ minHeight: "100vh" }}>
+    <Grommet full themeMode='dark' style={{ minHeight: "100vh", background: "#2d2d2d" }}>
       <Box width="100%" align='center' justify='around'>
         <Box width="50%">
-          <TextInput style={{ marginTop: 10, marginBottom: 10 }} size="medium" icon={<Search />} placeholder="https://www.pcdiga.com/componentes/processadores/..." value={urlInput} onChange={onChange} onKeyDown={onInpuitKeyDown} />
+          <TextInput readOnly={loading} style={{ marginTop: 10, marginBottom: 10 }} size="medium" icon={<Search />} placeholder="https://www.pcdiga.com/componentes/processadores/..." value={urlInput} onChange={onChange} onKeyDown={onInputKeyDown} />
         </Box>
         <div className="ag-theme-balham-dark" style={{ width: '80%', height: 600, marginLeft: "10%", marginRight: "10%" }}>
           <AgGridReact
@@ -260,9 +276,9 @@ function MyApp() {
             title={toastTitle}
             message={toastMessage}
             onClose={onClose}
-             
+
           />
-      )}
+        )}
     </Grommet>
   );
 }
