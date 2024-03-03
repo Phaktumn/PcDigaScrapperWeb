@@ -27,7 +27,6 @@ import React from 'react';
 import { cloneDeep } from 'lodash';
 import { AgChartOptions } from 'ag-charts-community';
 
-const API_URL = 'http://localhost:5000';
 function MyApp() {
   const [Products, SetProducts] = useState<any[]>([]);
   const [SelectedRow, SetSelectedRow] = useState<Product>();
@@ -50,7 +49,7 @@ function MyApp() {
   const [scraping, setScraping] = useState(false)
 
   function getApiUrl() {
-    return process.env.API_URL || API_URL;
+    return process.env.API_URL || 'http://localhost:5000';
   }
 
   const gridRef = useRef<AgGridReact>(null);
