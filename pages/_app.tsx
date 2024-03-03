@@ -11,7 +11,7 @@ import 'ag-grid-community/dist/styles/ag-theme-alpine.css'; // Optional theme CS
 import 'ag-grid-community/dist/styles/ag-theme-balham-dark.css'; // Optional theme CSS
 import 'ag-grid-community/dist/styles/ag-theme-alpine-dark.css'; // Optional theme CSS
 import 'ag-grid-community/dist/styles/ag-theme-material.css'; // Optional theme CSS
-import { AgChartOptions, Autowired, ColDef, ColGroupDef, Color, ICellRendererParams, RowSelectedEvent } from 'ag-grid-community';
+import { ColDef, ColGroupDef, ICellRendererParams } from 'ag-grid-community';
 
 import { AgChartsReact } from 'ag-charts-react';
 import { Product } from '../models/Product';
@@ -25,6 +25,7 @@ import { Box, Button, TextInput, Grommet, Tag, Notification } from 'grommet';
 import React from 'react';
 
 import { cloneDeep } from 'lodash';
+import { AgChartOptions } from 'ag-charts-community';
 
 const API_URL = 'http://localhost:5000';
 function MyApp() {
@@ -38,21 +39,7 @@ function MyApp() {
     legend: {
       enabled: true,
       position: "top"
-    },
-    /*series: [ 
-      {
-        data: SelectedRow?.sellers[0].productPrices,
-        xKey: 'date',
-        yKey: 'currentPrice',
-        xName: SelectedRow?.sellers[0].name,
-        yName: SelectedRow?.sellers[0].name,
-        label: {
-          enabled: true,
-          color: 'white',
-          fontWeight: 'bold'
-        }
-      }
-    ]*/
+    }
   });
   const placeholderImage = 'https://socialistmodernism.com/wp-content/uploads/2017/07/placeholder-image.png';
   const a: any[] = [];
@@ -199,6 +186,7 @@ function MyApp() {
     selectedRows[0].sellers.forEach(element => {
       var prices = element.productPrices;
       console.log(prices);
+      options.data?.push(prices);
       options.series?.push({
         data: prices,
         xKey: 'date',
@@ -211,7 +199,7 @@ function MyApp() {
           fontWeight: 'bold'
         }
 
-      },
+      } as any,
         {
           data: prices,
           xKey: 'date',
@@ -222,11 +210,9 @@ function MyApp() {
             enabled: true,
             color: 'white'
           }
-        });
+        } as any);
     });
     setAGGOptions(options);
-    console.log(options);
-    console.log(AGGOptions);
   }, [AGGOptions]);
 
   const onChange = (event: any) => setUrlInput(event.target.value);
