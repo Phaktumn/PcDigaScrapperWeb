@@ -50,7 +50,7 @@ function MyApp() {
   const [scraping, setScraping] = useState(false)
 
   function getApiUrl() {
-    return API_URL;
+    return process.env.API_URL || API_URL;
   }
 
   const gridRef = useRef<AgGridReact>(null);
