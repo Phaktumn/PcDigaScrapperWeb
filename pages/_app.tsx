@@ -49,7 +49,6 @@ function MyApp() {
   const [scraping, setScraping] = useState(false)
 
   function getApiUrl() {
-    console.log(process.env.API_URL);
     return process.env.API_URL || 'https://web-production-0777.up.railway.app';
   }
 
@@ -72,19 +71,6 @@ function MyApp() {
   const openInNewTab = (url: string) => {
     window.open(url, '_blank', 'noopener,noreferrer');
   };
-
-  /*
-  {
-    data:  SelectedRow?.sellers[0].productPrices,
-    type: 'line',
-    xKey: 'date',
-    yKey: 'currentPrice',
-    label: {
-      enabled: true,
-      color: 'white',
-      fontWeight: 'bold'
-    }
-  }*/
 
   // Each Column Definition results in one Column.
   const [columnDefs, setColumnDefs] = useState<(ColDef | ColGroupDef)[]>([
@@ -130,7 +116,7 @@ function MyApp() {
               setScraping(true);
               gridRef?.current?.api.showLoadingOverlay();
               try {
-                await axios.get<Product | any>(`${getApiUrl()}/scrape?sku=${prop.data.sku}`);
+                let res = await axios.get<Product | any>(`${getApiUrl()}/scrape?sku=${prop.data.sku}`);
                 await getProducts();
               } catch (error: any) {
                 setToastMessage(error.response.data.message);
@@ -185,7 +171,6 @@ function MyApp() {
     options.series = [];
     selectedRows[0].sellers.forEach(element => {
       var prices = element.productPrices;
-      console.log(prices);
       options.data?.push(prices);
       options.series?.push({
         data: prices,
