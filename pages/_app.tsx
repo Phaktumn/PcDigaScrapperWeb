@@ -49,7 +49,7 @@ function MyApp() {
   const [scraping, setScraping] = useState(false)
 
   function getApiUrl() {
-    return process.env.API_URL || 'https://web-production-0777.up.railway.app';
+    return process.env.API_URL || 'https://scrapperapi.up.railway.app';
   }
 
   const gridRef = useRef<AgGridReact>(null);
